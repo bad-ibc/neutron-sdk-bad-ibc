@@ -12,6 +12,11 @@ use crate::{
     sudo::{prepare_sudo_payload, sudo_error, sudo_open_ack, sudo_response, sudo_timeout},
 };
 
+use cosmos_anybuf::{
+    interfaces::{InterChainQueries, InterchainTxs},
+    neutron::Neutron,
+    Any,
+};
 use cosmwasm_std::{
     coin, entry_point, from_json, to_json_binary, Addr, BankMsg, Binary, Deps, DepsMut, Empty, Env,
     MessageInfo, Reply, Response, StdError, StdResult, Storage, SubMsg,
@@ -19,11 +24,7 @@ use cosmwasm_std::{
 
 use cw721_base::state::TokenInfo;
 use neutron_sdk::{
-    bindings::{
-        msg::{MsgRegisterInterchainQueryResponse, NeutronMsg},
-        query::QueryRegisteredQueryResponse,
-        types::{Height, ProtobufAny},
-    },
+    bindings::{msg::MsgRegisterInterchainQueryResponse, types::Height},
     interchain_txs::helpers::get_port_id,
     sudo::msg::SudoMsg,
     NeutronError, NeutronResult,
@@ -36,7 +37,6 @@ use cosmos_sdk_proto::{
 
 use cw2::set_contract_version;
 use prost::Message as ProstMessage;
-use prost_types::Any;
 
 use cw721::Cw721ExecuteMsg;
 use serde_json_wasm;
@@ -93,7 +93,7 @@ pub fn execute(
         } => register_transfer_nft_query(deps, env, min_height, sender, token_id),
         // todo: add NFT ownership query
         ExecuteMsg::RemoveInterchainQuery { query_id } => {
-            remove_interchain_query(query_id, info.sender)
+            remove_interchain_query(env, query_id, info.sender)
         }
         ExecuteMsg::UnlockNft {
             token_id,
@@ -150,8 +150,6 @@ pub fn register_transfer_nft_query(
         token_id.clone(),
     )?;
 
-    // let kv_query_msg = new_register_nft_owned_query_msg(connection_id, config.update_period, config.nft_contract_address, token_id)?;
-
     Ok(Response::new()
         // .add_message(kv_query_msg)
         .add_submessage(SubMsg::reply_on_success(
@@ -160,8 +158,9 @@ pub fn register_transfer_nft_query(
         )))
 }
 
-pub fn remove_interchain_query(query_id: u64, sender: Addr) -> NeutronResult<Response> {
-    let remove_msg = NeutronMsg::remove_interchain_query(query_id);
+pub fn remove_interchain_query(env: Env, query_id: u64, sender: Addr) -> NeutronResult<Response> {
+    let remove_msg = Neutron::remove_interchain_query(env.contract.address, query_id);
+
     let transfer_msg = BankMsg::Send {
         to_address: sender.into(),
         amount: vec![coin(100000u128, "untrn")],
@@ -188,7 +187,7 @@ fn execute_mint_nft(
     remove_token_from_storage(deps.storage, token_id.clone(), sender_addr);
 
     // close the query (gets back some funds)
-    let resp = remove_interchain_query(query_id, info.sender)?;
+    let resp = remove_interchain_query(env, query_id, info.sender)?;
 
     // Mint the new cw20 tokens (costs some funds - on testnet it's the same)
     let resp = resp.add_submessages(mint_native_receipt(deps, env, token_id, addr)?.messages);
@@ -256,14 +255,15 @@ fn execute_unlock_nft(
         ))));
     }
 
-    let any_msg = Any::from_msg(&unlock_message) // Using the to_any feature to not mess it up
+    let any_msg = prost_types::Any::from_msg(&unlock_message) // Using the to_any feature to not mess it up
         .map_err(|e| NeutronError::Std(StdError::generic_err(e.to_string())))?;
 
-    let cosmos_msg = NeutronMsg::submit_tx(
-        connection_id,
+    let cosmos_msg = Neutron::submit_tx(
+        env.contract.address,
         INTERCHAIN_ACCOUNT_ID.to_string(),
-        vec![ProtobufAny {
-            value: Binary(any_msg.value),
+        connection_id,
+        vec![Any {
+            value: any_msg.value,
             type_url: any_msg.type_url,
         }],
         "".to_string(),
@@ -416,8 +416,7 @@ pub fn sudo_tx_query_result(
     let body: TxBody = TxBody::decode(tx.body_bytes.as_slice())?;
 
     // Get the registered query by ID and retrieve the raw query string
-    let registered_query: QueryRegisteredQueryResponse =
-        get_registered_query(deps.as_ref(), query_id)?;
+    let registered_query = get_registered_query(deps.as_ref(), query_id)?;
     let _transactions_filter = registered_query.registered_query.transactions_filter;
 
     #[allow(clippy::match_single_binding)]

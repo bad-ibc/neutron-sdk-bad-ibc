@@ -1,10 +1,11 @@
+use cosmos_anybuf::{
+    interfaces::InterChainQueries,
+    neutron::Neutron,
+    types::neutron::icq_query::{QueryRegisteredQueryResponse, QueryRegisteredQueryResultResponse},
+};
 use cosmwasm_std::{Deps, StdError, StdResult};
 use neutron_sdk::{
-    bindings::query::{
-        NeutronQuery, QueryRegisteredQueryResponse, QueryRegisteredQueryResultResponse,
-    },
-    query::min_ibc_fee::MinIbcFeeResponse,
-    NeutronResult,
+    bindings::query::NeutronQuery, query::min_ibc_fee::MinIbcFeeResponse, NeutronResult,
 };
 use prost::Message;
 
@@ -16,10 +17,7 @@ pub fn get_raw_interchain_query_result(
     deps: Deps,
     interchain_query_id: u64,
 ) -> NeutronResult<QueryRegisteredQueryResultResponse> {
-    let interchain_query = NeutronQuery::InterchainQueryResult {
-        query_id: interchain_query_id,
-    };
-    let res = deps.querier.query(&interchain_query.into())?;
+    let res = Neutron::query_registered_query_result(&deps.querier, interchain_query_id)?;
     Ok(res)
 }
 
@@ -28,11 +26,8 @@ pub fn get_registered_query(
     deps: Deps,
     interchain_query_id: u64,
 ) -> NeutronResult<QueryRegisteredQueryResponse> {
-    let query = cosmos_anybuf::types::neutron::icq_query::QueryRegisteredQueryRequest {
-        query_id: interchain_query_id,
-    };
+    let res = Neutron::query_registered_query(&deps.querier, interchain_query_id)?;
 
-    let res: QueryRegisteredQueryResponse = deps.querier.query(&query.into())?;
     Ok(res)
 }
 

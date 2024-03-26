@@ -1,17 +1,25 @@
 use cosmwasm_std::{Addr, CosmosMsg, Deps, Env, StdError};
 use neutron_sdk::{
-    bindings::{msg::NeutronMsg, types::KVKey},
+    bindings::msg::NeutronMsg,
     interchain_queries::{
-        types::{QueryPayload, TransactionFilterItem, TransactionFilterOp, TransactionFilterValue},
+        types::{
+            QueryPayload, QueryType, TransactionFilterItem, TransactionFilterOp,
+            TransactionFilterValue,
+        },
         v047::types::WASM_CONTRACT_STORE_PREFIX,
     },
     NeutronError, NeutronResult,
 };
+use serde_json_wasm::to_string;
 
 use crate::{
     contract::INTERCHAIN_ACCOUNT_ID,
     mint::any_addr_to_stars,
     state::{get_ica, SENDER_TXS, TOKEN_INFOS},
+};
+use cosmos_anybuf::{
+    types::neutron::{icq_tx::MsgRegisterInterchainQuery, interchainqueries::KVKey},
+    StargateMsg,
 };
 
 // [{"field": "{eventType}.{attributeKey}", "val": "{attributeValue}", "op": "gte"}, ...]
@@ -36,11 +44,17 @@ pub fn new_register_transfer_nft_query_msg(
     let query_data = nft_transfer_filter(min_height, recipient, sender, contract_address, token_id);
 
     // [{"field": "{eventType}.{attributeKey}", "val": "{attributeValue}", "op": "gte"}, ...]
-    NeutronMsg::register_interchain_query(
-        QueryPayload::TX(query_data),
+
+    Ok(MsgRegisterInterchainQuery {
+        query_type: QueryType::TX.into(),
+        keys: vec![],
+        transactions_filter: to_string(&query_data)
+            .map_err(|e| StdError::generic_err(e.to_string()))?,
         connection_id,
         update_period,
-    )
+        sender,
+    }
+    .to_msg())
 }
 
 pub fn nft_transfer_filter(
@@ -147,25 +161,6 @@ fn check_host_transactions(
     }
 
     Ok(host_address)
-}
-
-pub fn new_register_nft_owned_query_msg(
-    connection_id: String,
-    update_period: u64,
-    collection_address: String,
-    token_id: String,
-) -> NeutronResult<CosmosMsg> {
-    let (_, store_key) = nft_owned_filter(token_id, collection_address);
-
-    // [{"field": "{eventType}.{attributeKey}", "val": "{attributeValue}", "op": "gte"}, ...]
-    return NeutronMsg::register_interchain_query(
-        QueryPayload::KV(vec![KVKey {
-            path: "wasm".to_string(),
-            key: store_key.into(),
-        }]),
-        connection_id,
-        update_period,
-    );
 }
 
 pub fn nft_owned_filter(token_id: String, contract_address: String) -> (Vec<u8>, Vec<u8>) {

@@ -1,3 +1,4 @@
+use cosmos_anybuf::types::neutron::interchainqueries::KVKey;
 use neutron_sdk::bindings::query::QueryRegisteredQueryResponse;
 
 use crate::state::NftTransfer;
@@ -53,9 +54,7 @@ pub enum QueryMsg {
     #[returns(String)]
     IcaAccount {},
     #[returns(String)]
-    TokenDenom{
-        token_id: String
-    },
+    TokenDenom { token_id: String },
     #[returns(NftTransfersResponse)]
     NftTransfers { sender: String },
     #[returns(QueryRegisteredQueryResponse)]
