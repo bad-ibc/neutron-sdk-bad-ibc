@@ -12,18 +12,6 @@ exclude = [
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-
-[[example]]
-name = "deploy"
-required-features = ["interface"]
-
-[[example]]
-name = "migrate"
-required-features = ["interface"]
-
-# [[example]]
-
-
 [lib]
 crate-type = ["cdylib", "rlib"]
 
@@ -40,40 +28,38 @@ overflow-checks = true
 
 [features]
 # for more explicit tests, cargo test --features=backtraces
-interface = ["dep:cw-orch"]
 backtraces = ["cosmwasm-std/backtraces"]
 library = []
 
 [dependencies]
-cosmwasm-std = { version = "1.2.0", features = ["staking"] }
-cw2 = "0.15.1"
-cw721-base = "0.18.0"
 schemars = "0.8.10"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-neutron-sdk = { default-features = false, version = "0.9.0" }
 base64 = "0.13.0"
-cosmos-sdk-proto = { version = "0.20.0", default-features = false, features = [
+
+cosmos-sdk-proto = { version = "0.21.1", default-features = false, features = [
   "cosmwasm",
 ] }
-cw-storage-plus = { version = "0.14.0", features = ["iterator"] }
 prost = "0.12.3"
-serde-json-wasm = "0.4.1"
+prost-types = "0.12.3"
+
+cosmwasm-std = { version = "1.2.0", features = ["staking"] }
+cw-storage-plus = { version = "0.14.0", features = ["iterator"] }
 cosmwasm-schema = { version = "1.2.0", default-features = false }
-bech32 = "0.9.1"
 cw0 = "0.10.3"
 cw721 = "0.18.0"
-cw-orch = { version = "0.21.1", optional = true, features = ["daemon"] }
-prost-types = "0.12.3"
+cw2 = "0.15.1"
+cw721-base = "0.18.0"
+
+serde-json-wasm = "0.4.1"
+bech32 = "0.9.1"
+cw-orch = { version = "0.21.2" }
 hex = "0.4.3"
 snailquote = "0.3.1"
 cosmos-anybuf = { git = "https://github.com/AbstractSDK/cosmos-anybuf" }
-# cosmos-anybuf = { path = "../../../cosmos-anybuf/cosmos-anybuf" }
+thiserror = "1.0.58"
 
 [dev-dependencies]
-tokio = "1.29.1"
-cw-orch = { version = "0.21.1", features = ["daemon"] }
-# cw-orch = {path="../../../../BOOT/cw-orchestrator/cw-orch", features=["daemon"]}
-
-neutron_interchain_queries = { path = ".", features = ["interface"] }
+neutron-sdk = { version = "0.9.0" }
+cw-orch = { version = "0.21.2", features = ["daemon"] }
 env_logger = "0.10.0"
 dotenv = "0.15.0"

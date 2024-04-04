@@ -4,9 +4,10 @@ use cosmwasm_std::{
 };
 use cw721_base::state::TokenInfo;
 use cw_storage_plus::{Item, Map};
-use neutron_sdk::interchain_txs::helpers::get_port_id;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
+use crate::neutron_sdk::sdk::get_port_id;
 
 pub type Sender = str;
 

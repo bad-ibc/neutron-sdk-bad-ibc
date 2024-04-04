@@ -20,3 +20,5 @@ Cargo.lock
 .idea
 .mutagen.yml
 .vscode
+
+.env

@@ -1,18 +1,14 @@
-
-use crate::config::INTERCHAIN_QUERY_ID;
-use crate::config::STARTGAZE_NFT_ADDRESS;
+use crate::config::STARGAZE_NFT_ADDRESS;
 use cw_orch::daemon::networks::PION_1;
 use cw_orch::daemon::DaemonBuilder;
 
-
 mod config;
 
-use neutron_interchain_queries::contract::NeutronInterchainQueries;
+use neutron_interchain_queries::NeutronInterchainQueries;
 
 use neutron_interchain_queries::msg::ExecuteMsgFns;
 
-
-use tokio::runtime::Runtime;
+use cw_orch::tokio::runtime::Runtime;
 
 pub fn main() -> cw_orch::anyhow::Result<()> {
     env_logger::init();
@@ -24,9 +20,9 @@ pub fn main() -> cw_orch::anyhow::Result<()> {
         .handle(rt.handle())
         .build()?;
 
-    let bad_kids = NeutronInterchainQueries::new(INTERCHAIN_QUERY_ID, chain);
+    let bad_kids = NeutronInterchainQueries::new(chain);
 
-    bad_kids.update_config(Some(STARTGAZE_NFT_ADDRESS.to_string()),None)?;
+    bad_kids.update_config(Some(STARGAZE_NFT_ADDRESS.to_string()), None)?;
 
     Ok(())
 }

@@ -1,3 +1,6 @@
+use cosmos_anybuf::{
+    neutron::sudo::RequestPacket, types::neutron::ictxs_tx::MsgSubmitTxResponse, StargateResponse,
+};
 use cosmos_sdk_proto::cosmos::staking::v1beta1::{MsgDelegateResponse, MsgUndelegateResponse};
 
 use cosmwasm_std::{Binary, DepsMut, Env, Reply, Response, StdError, StdResult};
@@ -5,13 +8,8 @@ use cosmwasm_std::{Binary, DepsMut, Env, Reply, Response, StdError, StdResult};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use neutron_sdk::{
-    bindings::msg::MsgSubmitTxResponse,
-    interchain_txs::v047::helpers::decode_acknowledgement_response, sudo::msg::RequestPacket,
-};
-
 use crate::{
-    neutron_sdk::decode_message_response,
+    neutron_sdk::{decode_message_response, sdk::decode_acknowledgement_response},
     state::{
         add_error_to_queue, read_reply_payload, read_sudo_payload, save_sudo_payload,
         AcknowledgementResult, ACKNOWLEDGEMENT_RESULTS, INTERCHAIN_ACCOUNTS,
@@ -278,17 +276,24 @@ pub fn sudo_error(deps: DepsMut, request: RequestPacket, details: String) -> Std
 // and process this payload when an acknowledgement for the SubmitTx message is received in Sudo handler
 pub fn prepare_sudo_payload(mut deps: DepsMut, _env: Env, msg: Reply) -> StdResult<Response> {
     let payload = read_reply_payload(deps.storage)?;
-    let resp: MsgSubmitTxResponse = serde_json_wasm::from_slice(
+    // let resp: MsgSubmitTxResponse = serde_json_wasm::from_slice(
+    //     msg.result
+    //         .into_result()
+    //         .map_err(StdError::generic_err)?
+    //         .data
+    //         .ok_or_else(|| StdError::generic_err("no result"))?
+    //         .as_slice(),
+    // )
+    // .map_err(|e| StdError::generic_err(format!("failed to parse response: {:?}", e)))?;
+    let resp = MsgSubmitTxResponse::from_buf(
         msg.result
             .into_result()
             .map_err(StdError::generic_err)?
             .data
             .ok_or_else(|| StdError::generic_err("no result"))?
-            .as_slice(),
+            .to_vec(),
     )
-    .map_err(|e| StdError::generic_err(format!("failed to parse response: {:?}", e)))?;
-    deps.api
-        .debug(format!("WASMDEBUG: reply msg: {:?}", resp).as_str());
+    .unwrap();
     let seq_id = resp.sequence_id;
     let channel_id = resp.channel;
     save_sudo_payload(deps.branch().storage, channel_id, seq_id, payload)?;

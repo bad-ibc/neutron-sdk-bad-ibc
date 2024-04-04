@@ -1,24 +1,29 @@
+use crate::error::ContractResult;
+use crate::neutron_sdk::sdk::get_port_id;
 use crate::{
     reply::SUDO_PAYLOAD_REPLY_ID,
     state::{save_reply_payload, SudoPayload, INTERCHAIN_ACCOUNTS},
 };
-use cosmos_anybuf::{interfaces::InterchainTxs, neutron::{IbcFee, Neutron}};
-use cosmwasm_std::{CosmosMsg, DepsMut, Env, Response, StdResult, SubMsg};
-use neutron_sdk::{interchain_txs::helpers::get_port_id, NeutronResult};
+use cosmos_anybuf::{
+    interfaces::InterchainTxs,
+    neutron::{IbcFee, Neutron},
+};
+use cosmwasm_std::{Coin, CosmosMsg, DepsMut, Env, Response, StdResult, SubMsg};
 
 const FEE_DENOM: &str = "untrn";
 
 pub fn execute_register_ica(
     deps: DepsMut,
     env: Env,
+    funds: Vec<Coin>,
     connection_id: String,
     interchain_account_id: String,
-) -> NeutronResult<Response> {
+) -> ContractResult<Response> {
     let register = Neutron::register_interchain_account(
-        env.contract.address,
+        &env.contract.address,
         connection_id,
-        interchain_account_id,
-        vec![],
+        &interchain_account_id,
+        funds,
     );
     let key = get_port_id(env.contract.address.as_str(), &interchain_account_id);
     // we are saving empty data here because we handle response of registering ICA in sudo_open_ack method

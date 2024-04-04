@@ -1,9 +1,9 @@
+use crate::error::ContractResult;
 use crate::state::{MINTED_TOKENS, TOTAL_MINTED_TOKENS};
 use cosmos_anybuf::types::coin::Coin;
 use cosmos_anybuf::types::neutron::tokenfactory_tx::{MsgCreateDenom, MsgMint};
 use cosmos_anybuf::StargateMsg;
-use cosmwasm_std::{Addr, Deps, DepsMut, Env, Response, StdError};
-use neutron_sdk::NeutronResult;
+use cosmwasm_std::{Addr, Deps, DepsMut, Env, Response, StdError, StdResult};
 
 const MINT_AMOUNT: u128 = 100;
 pub const THRESHOLD_BURN_AMOUNT: u128 = 50;
@@ -11,14 +11,14 @@ const NEUTRON_BECH32_PREFIX: &str = "neutron";
 const STARS_BECH32_PREFIX: &str = "stars";
 
 /// This function transfer the addr to a local neutron addr
-pub fn any_addr_to_neutron(deps: Deps, addr: String) -> NeutronResult<Addr> {
+pub fn any_addr_to_neutron(deps: Deps, addr: String) -> ContractResult<Addr> {
     // TODO, test this snippet
     let (_hrp, data, _variant) = bech32::decode(&addr)?;
     let neutron_addr = bech32::encode(NEUTRON_BECH32_PREFIX, data, bech32::Variant::Bech32)?;
     Ok(deps.api.addr_validate(&neutron_addr)?)
 }
 
-pub fn any_addr_to_stars(deps: Deps, addr: Addr) -> NeutronResult<String> {
+pub fn any_addr_to_stars(deps: Deps, addr: Addr) -> ContractResult<String> {
     // TODO, test this snippet
     let (_hrp, data, _variant) = bech32::decode(&addr.as_str())?;
     let stars_addr = bech32::encode(STARS_BECH32_PREFIX, data, bech32::Variant::Bech32)?;
@@ -44,7 +44,7 @@ pub fn mint_native_receipt(
     env: Env,
     token_id: String,
     addr: Addr,
-) -> NeutronResult<Response> {
+) -> StdResult<Response> {
     // First we see where we are at in terms of numbers of tokens
     let token_count = TOTAL_MINTED_TOKENS.load(deps.storage).unwrap_or(0);
     TOTAL_MINTED_TOKENS.save(deps.storage, &(token_count + 1))?;
@@ -86,10 +86,12 @@ mod tests {
     use neutron_sdk::NeutronResult;
     use std::marker::PhantomData;
 
+    use crate::error::ContractResult;
+
     use super::any_addr_to_neutron;
 
     #[test]
-    fn right_address_generation() -> NeutronResult<()> {
+    fn right_address_generation() -> ContractResult<()> {
         let deps = OwnedDeps {
             storage: MockStorage::default(),
             api: MockApi::default(),

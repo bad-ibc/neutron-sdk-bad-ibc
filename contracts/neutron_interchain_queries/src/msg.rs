@@ -1,5 +1,7 @@
-use cosmos_anybuf::types::neutron::interchainqueries::KVKey;
-use neutron_sdk::bindings::query::QueryRegisteredQueryResponse;
+use cosmos_anybuf::types::neutron::{
+    icq_query::QueryRegisteredQueryResponse, interchainqueries::KVKey,
+};
+use cosmwasm_std::Empty;
 
 use crate::state::NftTransfer;
 
@@ -15,13 +17,14 @@ pub struct InstantiateMsg {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-#[cfg_attr(feature = "interface", derive(cw_orch::ExecuteFns))]
+#[derive(cw_orch::ExecuteFns)]
 pub enum ExecuteMsg {
+    #[payable]
     RegisterICA {},
     MintNft {
         token_id: String,
     },
-    #[cfg_attr(feature = "interface", payable)]
+    #[payable]
     RegisterTransferNftQuery {
         min_height: u64,
         sender: String,
@@ -30,7 +33,7 @@ pub enum ExecuteMsg {
     RemoveInterchainQuery {
         query_id: u64,
     },
-    #[cfg_attr(feature = "interface", payable)]
+    #[payable]
     UnlockNft {
         token_id: String,
         destination: String,
@@ -48,8 +51,7 @@ pub enum ReplyMsg {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-#[cfg_attr(feature = "interface", derive(cw_orch::QueryFns))]
-#[derive(QueryResponses)]
+#[derive(cw_orch::QueryFns, QueryResponses)]
 pub enum QueryMsg {
     #[returns(String)]
     IcaAccount {},
