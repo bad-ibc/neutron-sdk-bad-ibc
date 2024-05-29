@@ -1,4 +1,3 @@
-
 use crate::config::INTERCHAIN_QUERY_ID;
 use cw_orch::daemon::networks::PION_1;
 use cw_orch::daemon::DaemonBuilder;
@@ -6,12 +5,10 @@ use cw_orch::prelude::ContractInstance;
 
 use cw_orch::prelude::CwOrchMigrate;
 use cw_orch::prelude::CwOrchUpload;
-use neutron_interchain_queries::contract::NeutronInterchainQueries;
+use neutron_interchain_queries::NeutronInterchainQueries;
 
-
-
+use cw_orch::tokio::runtime::Runtime;
 use neutron_interchain_queries::msg::MigrateMsg;
-use tokio::runtime::Runtime;
 mod config;
 
 pub fn main() -> cw_orch::anyhow::Result<()> {
@@ -24,7 +21,7 @@ pub fn main() -> cw_orch::anyhow::Result<()> {
         .handle(rt.handle())
         .build()?;
 
-    let bad_kids = NeutronInterchainQueries::new(INTERCHAIN_QUERY_ID, chain);
+    let bad_kids = NeutronInterchainQueries::new(chain);
 
     // bad_kids.upload()?;
 
